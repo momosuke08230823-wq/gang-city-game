@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#161b28"><title>GANG CITY | BUILD 003</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#161b28"><title>GANG CITY | BUILD 004</title>
 <style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111722;color:white;font-family:system-ui;touch-action:none}#game{width:100vw;height:100dvh;display:block;image-rendering:pixelated}#hud{position:fixed;top:7px;left:10px;font-size:12px;text-shadow:1px 2px #111;pointer-events:none}#tip{position:fixed;top:7px;right:10px;font-size:11px;color:#e7e7e7;pointer-events:none}.pad{position:fixed;left:20px;bottom:17px;display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,43px);gap:3px}.btn{background:#1b2338bd;border:2px solid #a4c4d5a8;border-radius:13px;color:#fff;font-size:19px;font-weight:bold;touch-action:none;user-select:none}.btn:active,.btn.down{background:#52a8d7bb}.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}.actions{position:fixed;right:15px;bottom:22px;display:flex;gap:9px;align-items:end}.actions .btn{width:59px;height:59px;border-radius:50%;font-size:12px}.actions .attack{width:73px;height:73px;background:#c3484dbb;border-color:#ffc0b5}.actions .dash{background:#437fa6bb}.actions .jump{background:#6656a8bb}@media(max-width:600px){.pad{transform:scale(.85);transform-origin:bottom left;left:9px;bottom:10px}.actions{transform:scale(.85);transform-origin:bottom right;right:7px;bottom:10px}#tip{font-size:9px}}@media(orientation:portrait){.pad{bottom:12px}.actions{bottom:12px}#tip{display:none}}
 </style></head><body><canvas id="game"></canvas><div id="hud">GANG CITY — BUILD 001<br>HP <span id="hp">100</span> | K.O. <span id="ko">0</span></div><div id="tip">移動：十字キー / WASD　攻撃：拳 / J　ダッシュ：DASH / K　ジャンプ：JUMP / Space</div><div class="pad"><button class="btn up" data-key="up">▲</button><button class="btn left" data-key="left">◀</button><button class="btn right" data-key="right">▶</button><button class="btn down" data-key="down">▼</button></div><div class="actions"><button class="btn dash" data-key="dash">DASH</button><button class="btn jump" data-key="jump">JUMP</button><button class="btn attack" data-key="attack">拳 ATTACK</button></div>
 <script>
@@ -16,13 +16,64 @@ rect(0,123,W,22,'#b2aaa0');rect(0,145,W,125,'#777e83');rect(0,151,W,3,'#64696d')
 rect(15,94,102,51,'#77717a');rect(18,100,96,40,'#353c4c');rect(19,96,96,7,'#b25d53');text('CLOSED',40,118,'#e6c2b5',10);rect(138,102,78,44,'#626879');rect(145,107,63,31,'#383b4a');text('NO ENTRY',150,125,'#e18e77',8);
 rect(271,123,55,23,'#6c7379');rect(274,126,49,17,'#a34f4a');text('GANG',280,138,'#e9d0b7',9);rect(355,136,70,12,'#525a60');rect(366,126,46,12,'#6e7881');rect(369,129,10,7,'#acc6d0');rect(397,129,10,7,'#acc6d0');rect(365,146,12,6,'#252d35');rect(401,146,12,6,'#252d35');rect(235,146,9,10,'#ad7d54');rect(242,150,8,6,'#936441');
 }
-function fighter(x,y,enemy,face,action,flash=0,jump=0){ctx.save();ctx.translate(Math.round(x),Math.round(y-jump));ctx.scale(face,1);rect(-12,0,25,4,'#3b424a88');let move=Math.sin(frame*.28)*2;
-rect(-8,-20,7,19,enemy?'#3b4147':'#2c3643');rect(2,-20,7,19,enemy?'#34393e':'#364454');rect(-9,-4,10,4,enemy?'#171c22':'#d9e4ed');rect(1,-4,11,4,enemy?'#171c22':'#d9e4ed');
-rect(-11,-44,22,26,flash?'#fff':enemy?'#222832':'#d9e1e9');rect(-8,-40,16,18,enemy?'#363c48':'#7b8798');rect(-7,-56,15,15,enemy?'#9b7661':'#edc2a4');rect(-9,-59,18,7,enemy?'#171c25':'#252832');rect(-11,-54,5,11,enemy?'#171c25':'#252832');rect(4,-49,3,2,'#25232c');
-rect(-15,-41,5,18,enemy?'#2c313a':'#d0d9e1');rect(10,-41,5,17,enemy?'#2c313a':'#d0d9e1');
-if(action){rect(10,-41,action>8?23:17,7,enemy?'#a78168':'#e8b69a');rect(action>8?32:25,-43,8,10,enemy?'#9b7661':'#e5b49b')}else{rect(-15,-27,5,7,enemy?'#9b7661':'#e8b69a');rect(10,-27,5,7,enemy?'#9b7661':'#e8b69a')}
-if(!enemy){rect(-11,-44,3,18,'#6b83a4');rect(-9,-56,5,3,'#161b24');rect(4,-12,5,4,'#b64048')}
-ctx.restore();}
+function fighter(x,y,enemy,face,action,flash=0,jump=0){
+ctx.save();ctx.translate(Math.round(x),Math.round(y-jump));ctx.scale(face,1);
+const walking=enemy?Math.abs(hero.x-x)>30:(keys.left||keys.right||keys.up||keys.down);
+const stride=walking?Math.sin(frame*(enemy?.14:.27))*4:Math.sin(frame*.07)*.6;
+const punch=action>0,phase=punch?(action>7?1:2):0;
+const p=(a,b,w,h,col)=>rect(a,b,w,h,flash?'#f5f9ff':col);
+rect(-13,0,28,3,'#333e4c77');
+// legs: articulated trousers, contrasting highlights
+p(-9+stride*.5,-21,8,14,enemy?'#34363d':'#283548');
+p(2-stride*.5,-21,8,14,enemy?'#292e37':'#34445b');
+p(-9+stride,-9,8,7,enemy?'#292e37':'#2b394c');
+p(2-stride,-9,8,7,enemy?'#252a32':'#34445b');
+p(-11+stride,-4,12,4,enemy?'#151b24':'#f2f2ef');
+p(1-stride,-4,12,4,enemy?'#151b24':'#d6dfe5');
+p(-11+stride,-5,12,2,enemy?'#505762':'#6d879c');
+p(1-stride,-5,12,2,enemy?'#505762':'#6d879c');
+// torso, jacket collar and layered shirt
+p(-12,-46,24,27,enemy?'#30313b':'#26394c');
+p(-11,-44,5,23,enemy?'#3c3b43':'#55728c');
+p(6,-44,5,23,enemy?'#242b33':'#172e44');
+p(-5,-44,10,20,enemy?'#47434a':'#e3e9e6');
+p(-3,-43,6,12,enemy?'#6b5454':'#f6f5ed');
+p(-5,-46,5,8,enemy?'#44444a':'#324e68');
+p(1,-46,5,8,enemy?'#292d37':'#3e5c78');
+p(-11,-22,22,3,enemy?'#1c222c':'#243344');
+// neck and face: multiple pixel shades
+p(-4,-51,8,7,enemy?'#a17a61':'#db9e7f');
+p(-8,-60,16,15,enemy?'#ac8069':'#e6b294');
+p(-7,-56,4,7,enemy?'#936b5c':'#d49b82');
+p(4,-54,4,7,enemy?'#8d6556':'#c98b73');
+p(-6,-48,10,3,enemy?'#946b5d':'#c78974');
+p(4,-54,3,2,'#22252c');
+p(5,-50,2,1,'#915b58');
+// layered swept hair silhouette
+p(-9,-63,18,7,enemy?'#191c22':'#24232b');
+p(-11,-59,6,10,enemy?'#171a20':'#27252d');
+p(-4,-65,13,5,enemy?'#24242a':'#343039');
+p(2,-66,9,3,enemy?'#24242a':'#3a343a');
+p(-6,-62,10,2,enemy?'#303039':'#51454b');
+p(7,-59,3,6,enemy?'#1c1d23':'#2d2831');
+// far arm with a natural counter-swing
+p(-16,-43,6,14,enemy?'#363740':'#304a65');
+p(-16+stride*.4,-30,6,10,enemy?'#9c755f':'#e1aa8c');
+if(punch){
+  // lead arm drives forward, retracts during follow-through
+  const reach=phase===1?20:29;
+  p(9,-43,9,9,enemy?'#333741':'#456783');
+  p(14,-40,reach-9,7,enemy?'#99705e':'#d99b7e');
+  p(reach+4,-42,9,11,enemy?'#a87b62':'#efb99a');
+  p(reach+5,-40,7,4,enemy?'#8e6659':'#f7c8a7');
+  if(!enemy){rect(reach+13,-43,6,3,'#d5f1ff');rect(reach+17,-39,4,2,'#7ac9ee')}
+}else{
+  p(10,-43,6,16,enemy?'#343741':'#36516c');
+  p(10-stride*.5,-28,6,9,enemy?'#a57b65':'#e5b093');
+  p(11-stride*.5,-22,5,3,enemy?'#916b59':'#c88d77');
+}
+ctx.restore();
+}
 function burst(x,y,c,n=9){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-2.7,2.7),vy:rand(-2.8,.7),life:rand(8,18),c})}
 function attack(){if(hero.atk>3||hero.hp<=0)return;hero.combo=hero.comboTime>0?(hero.combo%5)+1:1;hero.comboTime=32;hero.atk=14;let reach=hero.combo===5?57:40;let hits=0;for(const e of enemies){if(e.dead)continue;if(Math.abs(e.y-hero.y)<23&&(e.x-hero.x)*hero.face>0&&(e.x-hero.x)*hero.face<reach){e.hp-=hero.combo===5?2:1;e.hit=12;e.x+=hero.face*(hero.combo===5?30:13);e.face=-hero.face;hits++;burst(e.x,e.y-37,hero.combo===5?'#ffe18b':'#f7f5e8',12);if(e.hp<=0){e.dead=true;ko++;burst(e.x,e.y-25,'#e38b6d',18)}}}if(hits)shake=hero.combo===5?6:3;}
 function input(k,on){keys[k]=on;if(on&&k==='attack')attack();if(on&&k==='jump'&&hero.jump<=0)hero.jump=21;if(on&&k==='dash'&&hero.dash<=0)hero.dash=15;}
